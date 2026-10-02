@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>EffortAI · Neural Effort Estimation</title>
+  <meta name="description" content="EffortAI bepaalt met behulp van AI de effort van je PBI's in story points.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%237c5cff'/><stop offset='1' stop-color='%2300d4ff'/></linearGradient></defs><rect width='32' height='32' rx='8' fill='url(%23g)'/><path d='M9 22l5-12 4 8 2-4 3 8' stroke='white' stroke-width='2.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="bg-glow" aria-hidden="true"></div>
+  <div class="bg-grid" aria-hidden="true"></div>
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo" aria-hidden="true">
+        <svg viewBox="0 0 32 32"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7c5cff"/><stop offset="1" stop-color="#00d4ff"/></linearGradient></defs><rect width="32" height="32" rx="8" fill="url(#lg)"/><path d="M9 22l5-12 4 8 2-4 3 8" stroke="white" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </span>
+      <span class="brand-name">Effort<span class="grad">AI</span></span>
+      <span class="badge">v4.2</span>
+    </div>
+    <div class="status-pill"><span class="dot"></span> EffortNet-XL online</div>
+  </header>
+
+  <main class="container">
+    <section class="hero">
+      <p class="eyebrow">Neural Effort Estimation Engine</p>
+      <h1>Story points bepalen?<br><span class="grad">Laat de AI het doen.</span></h1>
+      <p class="lead">Beschrijf je Product Backlog Item. EffortAI analyseert de inhoud, vergelijkt het met duizenden historische PBI's en bepaalt de effort volgens de Fibonacci-reeks.</p>
+      <ul class="stats">
+        <li><strong>128.473</strong><span>PBI's getraind</span></li>
+        <li><strong>94,7%</strong><span>nauwkeurigheid</span></li>
+        <li><strong>70B</strong><span>parameters</span></li>
+      </ul>
+    </section>
+
+    <!-- INPUT -->
+    <section id="inputPanel" class="card">
+      <form id="pbiForm" novalidate>
+        <div class="field">
+          <label for="title">Titel van de PBI</label>
+          <input id="title" type="text" placeholder="Als gebruiker wil ik kunnen inloggen met mijn Microsoft-account" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="description">Beschrijving</label>
+          <textarea id="description" rows="5" placeholder="Beschrijf wat er moet gebeuren, de context, betrokken systemen, enz."></textarea>
+        </div>
+        <div class="field">
+          <label for="criteria">Acceptatiecriteria <span class="optional">optioneel</span></label>
+          <textarea id="criteria" rows="3" placeholder="- Gebruiker wordt na inloggen doorgestuurd naar het dashboard&#10;- Foutmelding bij ongeldige gegevens"></textarea>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label for="model">Model</label>
+            <select id="model">
+              <option value="effortnet-xl">EffortNet-XL 70B (aanbevolen)</option>
+              <option value="effortnet-turbo">EffortNet-Turbo 8B</option>
+              <option value="effortnet-reasoning">EffortNet-Reasoning (experimenteel)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="team">Kalibratie</label>
+            <select id="team">
+              <option value="default">Gemiddelde Scrum-team velocity</option>
+              <option value="senior">Senior team</option>
+              <option value="mixed">Gemengd team</option>
+              <option value="junior">Junior team</option>
+            </select>
+          </div>
+        </div>
+        <p id="formError" class="form-error" role="alert" hidden>Geef de PBI een titel of beschrijving van minimaal 10 tekens.</p>
+        <button id="submitBtn" class="btn-primary" type="submit">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l2.4 6.6L21 11l-6.6 2.4L12 20l-2.4-6.6L3 11l6.6-2.4z" fill="currentColor"/></svg>
+          Bepaal effort met AI
+        </button>
+      </form>
+    </section>
+
+    <!-- ANALYSIS -->
+    <section id="analysisPanel" class="card analysis" hidden>
+      <div class="analysis-head">
+        <div>
+          <p class="eyebrow">Analyse bezig</p>
+          <h2 id="analysisTitle">PBI wordt geanalyseerd…</h2>
+        </div>
+        <div class="pct" id="pct">0%</div>
+      </div>
+      <div class="progress"><div class="progress-bar" id="progressBar"></div></div>
+
+      <div class="analysis-grid">
+        <ol class="steps" id="steps"></ol>
+        <div class="viz">
+          <canvas id="neural" width="520" height="260" aria-hidden="true"></canvas>
+          <div class="metrics">
+            <div><span class="m-label">Tokens</span><span class="m-val" id="mTokens">0</span></div>
+            <div><span class="m-label">Vergeleken PBI's</span><span class="m-val" id="mCompared">0</span></div>
+            <div><span class="m-label">Confidence</span><span class="m-val" id="mConfidence">–</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="chips" id="entities" hidden>
+        <span class="chips-label">Gedetecteerde entiteiten</span>
+        <div class="chips-list" id="entityList"></div>
+      </div>
+
+      <div class="agents" id="agents" hidden>
+        <p class="agents-title" id="agentsTitle">Planning Poker — AI-agents stemmen</p>
+        <div class="agents-row" id="agentsRow"></div>
+      </div>
+
+      <div class="terminal">
+        <div class="terminal-head"><span></span><span></span><span></span><em>effortnet — inference.log</em></div>
+        <pre id="log"></pre>
+      </div>
+    </section>
+
+    <!-- RESULT -->
+    <section id="resultPanel" class="card result" hidden>
+      <div class="result-top">
+        <div class="score-card">
+          <span class="score-label">Geschatte effort</span>
+          <span class="score" id="score">–</span>
+          <span class="score-unit">story points</span>
+        </div>
+        <div class="result-info">
+          <p class="eyebrow">Analyse voltooid</p>
+          <h2 id="resultTitle"></h2>
+          <p class="confidence">Confidence <strong id="resultConfidence"></strong> · <span id="resultModel"></span> · <span id="resultTime"></span></p>
+          <div class="fib" id="fibScale"></div>
+        </div>
+      </div>
+
+      <div class="result-grid">
+        <div class="factors">
+          <h3>Factoren</h3>
+          <div id="factors"></div>
+        </div>
+        <div class="reasoning">
+          <h3>Onderbouwing door AI</h3>
+          <ul id="reasoning"></ul>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn-secondary" id="copyBtn" type="button">Kopieer resultaat</button>
+        <button class="btn-primary" id="againBtn" type="button">Nieuwe PBI analyseren</button>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p>© 2026 EffortAI · Powered by EffortNet-XL · Schattingen zijn indicatief en vervangen geen team-overleg.</p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
